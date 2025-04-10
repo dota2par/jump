@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Clone with Jump Button</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #70c5ce;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Restart button styling */
+        #restartButton {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background-color: #ffcc00;
+            color: black;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            display: none; /* Hide button initially */
+        }
+
+        #restartButton:hover {
+            background-color: #ffb300;
+        }
+
+        /* Jump button styling */
+        #jumpButton {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background-color: #ff6f00;
+            color: white;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            display: block; /* Always show jump button */
+        }
+
+        #jumpButton:hover {
+            background-color: #e65c00;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div class="controls">
+        <p>Press Jump to Make the Bird Jump!</p>
+    </div>
+    <button id="restartButton">Restart Game</button> <!-- Restart button -->
+    <button id="jumpButton">Jump</button> <!-- Jump button -->
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const restartButton = document.getElementById('restartButton');
+        const jumpButton = document.getElementById('jumpButton');
+
+        // Set canvas size
+        canvas.width = 320;
+        canvas.height = 480;
+
+        // Game variables
+        let birdY = canvas.height / 2;
+        let birdVelocity = 0;
+        let gravity = 0.5;  // Less gravity for easier control
+        let jump = -8;      // Less jump force for more natural feel
+        let birdWidth = 20;
+        let birdHeight = 20;
+        let birdColor = 'yellow';
+        let isGameOver = false;
+
+        let pipes = [];
+        let pipeWidth = 40;
+        let pipeGap = 100;
+        let pipeSpeed = 2;
+        let pipeSpawnRate = 90;
+        let score = 0;
+
+        let birdX = 50;
+
+        // Bird object
+        const bird = {
+            x: birdX,
+            y: birdY,
+            width: birdWidth,
+            height: birdHeight,
+            color: birdColor
+        };
+
+        // Handle Jump Button click (jumping the bird)
+        jumpButton.addEventListener('click', function() {
+            if (!isGameOver) {
+                birdVelocity = jump;  // Make the bird jump
+            }
+        });
+
+        // Create pipes
+        function createPipe() {
+            let pipeHeight = Math.floor(Math.random() * (canvas.height - pipeGap));
+            pipes.push({
+                x: canvas.width,
+                topHeight: pipeHeight,
+                bottomHeight: canvas.height - pipeHeight - pipeGap
+            });
+        }
+
+        // Update game state
+        function update() {
+            if (isGameOver) return;
+
+            // Move bird vertically
+            birdVelocity += gravity;
+            bird.y += birdVelocity;
+
+            // Check for collision with ground or ceiling
+            if (bird.y + bird.height > canvas.height || bird.y < 0) {
+                isGameOver = true;
+                restartButton.style.display = 'block';  // Show restart button when game is over
+            }
+
+            // Move pipes
+            for (let i = 0; i < pipes.length; i++) {
+                pipes[i].x -= pipeSpeed;
+
+                // Check if bird passed a pipe (score)
+                if (pipes[i].x + pipeWidth < bird.x && !pipes[i].scored) {
+                    pipes[i].scored = true;
+                    score++;
+                }
+
+                // Remove pipes off-screen
+                if (pipes[i].x + pipeWidth < 0) {
+                    pipes.splice(i, 1);
+                    i--;
+                }
+            }
+
+            // Generate new pipes
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - pipeSpawnRate) {
+                createPipe();
+            }
+        }
+
+        // Draw game elements
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw bird
+            ctx.fillStyle = bird.color;
+            ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+
+            // Draw pipes
+            for (let pipe of pipes) {
+                ctx.fillStyle = 'green';
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.topHeight); // top pipe
+                ctx.fillRect(pipe.x, canvas.height - pipe.bottomHeight, pipeWidth, pipe.bottomHeight); // bottom pipe
+            }
+
+            // Draw score
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText('Score: ' + score, 10, 30);
+
+            // Draw game over text
+            if (isGameOver) {
+                ctx.fillText('Game Over!', 100, canvas.height / 2 - 20);
+            }
+        }
+
+        // Reset game state
+        function resetGame() {
+            bird.y = birdY;
+            birdVelocity = 0;
+            pipes = [];
+            score = 0;
+            isGameOver = false;
+            restartButton.style.display = 'none';  // Hide restart button after reset
+            gameLoop();  // Restart the game loop
+        }
+
+        // Main game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Restart game when the button is clicked
+        restartButton.addEventListener('click', function() {
+            resetGame();
+        });
+
+        // Start the game
+        gameLoop();
+    </script>
+</body>
+</html>
